@@ -48,7 +48,7 @@ gists_page = 'https://api.github.com/gists'
 # twitter tos page to monitor
 tos_page = 'https://twitter.com/en/tos'
 # check every 'period' seconds
-period = 30
+period = 60 * 10
 # tweet text
 status_text = 'Detected Twitter ToS changes.'
 
