@@ -158,16 +158,18 @@ while True:
 			with open(curr_state_file, 'w+t') as fp:
 				json.dump(prev, fp)
 
-
-			# create gist
-			gist = do_gist(diff, github_token)
-			
-			if 'html_url' in gist:
-				print("[%d] gist posted to %s" % (int(time.time()), gist['html_url']))
-				# share on mastodon
-				mastodon.toot('%s\n%s' % (status_text, gist['html_url']))
+			if 'dry_run' not in cfg['main'] or not cfg['main']['dry_run']:
+				# create gist
+				gist = do_gist(diff, github_token)
+				
+				if 'html_url' in gist:
+					print("[%d] gist posted to %s" % (int(time.time()), gist['html_url']))
+					# share on mastodon
+					mastodon.toot('%s\n%s' % (status_text, gist['html_url']))
+				else:
+					print("[%d] could not create gist: %s" % (int(time.time()), gist))
 			else:
-				print("[%d] could not create gist: %s" % (int(time.time()), gist))
+				print("dry run")
 
 		else:
 			print("[%d] same same ..." % now)
