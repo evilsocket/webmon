@@ -8,6 +8,7 @@ import requests
 import sys
 import yaml
 from mastodon import Mastodon
+import html2text
 
 def do_diff(prev, curr):
 	_, prev_file = tempfile.mkstemp()
@@ -61,6 +62,8 @@ mastodon = Mastodon(
     api_base_url = cfg['mastodon']['api_base_url']
 )
 
+html_converter = html2text.HTML2Text()
+
 print("web page monitor bot started for %s ...\n" % page_to_monitor)
 
 try:
@@ -101,8 +104,7 @@ while True:
 		print("[%d] got response %d, trying again in %d seconds ..." % (now, resp.status_code, period))
 
 	else:
-		data = resp.text
-		data += "\n\ntest"
+		data = html_converter.handle(resp.text)
 		# compare to previous state if this is not the first iteration
 		if prev is not None and data != prev['data']:
 			print("[%d] found differences!" % int(time.time()))
