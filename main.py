@@ -10,7 +10,7 @@ import yaml
 from mastodon import Mastodon
 import html2text
 
-def do_diff(prev, curr):
+def do_diff(ignore, prev, curr):
 	_, prev_file = tempfile.mkstemp()
 	with open(prev_file, 'w+t') as fp:
 		fp.write(prev)
@@ -19,7 +19,31 @@ def do_diff(prev, curr):
 	with open(curr_file, 'w+t') as fp:
 		fp.write(curr)
 
-	return subprocess.run(['diff', '-Naur', prev_file, curr_file], capture_output=True, text=True).stdout
+	diff = subprocess.run(['diff', '-Naur', prev_file, curr_file], capture_output=True, text=True).stdout
+	for line in diff.split('\n'):
+		line = line.strip()
+		# skip first lines
+		if line.startswith('+++') or line.startswith('---'):
+			continue
+
+		# is this line a change?
+		if line.startswith('+') or line.startswith('-'):
+			if len(line) == 1:
+				# empty line, not meaningful
+				continue
+			
+			# ignore tokens
+			ignored = False
+			for token in ignore:
+				if token.lower() in line.lower():
+					ignored = True
+					break
+				
+			if not ignored:
+				# this is a meaningful change
+				return diff
+
+	return None
 
 def do_gist(data, token):
 	headers={
@@ -63,7 +87,6 @@ mastodon = Mastodon(
 )
 
 html_converter = html2text.HTML2Text()
-html_converter.ignore_links = True
 
 print("web page monitor bot started for %s ...\n" % page_to_monitor)
 
@@ -80,7 +103,6 @@ try:
 	print("[%d] loaded state.json" % int(time.time()))
 except:
 	prev = None
-
 
 # set request headers
 headers = {
@@ -102,16 +124,25 @@ while True:
 	now = int(time.time())
 	resp = requests.get(page_to_monitor, headers=headers)
 	if resp.status_code != 200:
+		# http error
 		print("[%d] got response %d, trying again in %d seconds ..." % (now, resp.status_code, period))
-
+	elif prev is None:
+		# first iteration
+		data = html_converter.handle(resp.text)
+		# update current state.json time
+		prev = {
+			'time': now,
+			'data': data,
+			'diff': None
+		}
+		with open(curr_state_file, 'w+t') as fp:
+			json.dump(prev, fp)
 	else:
 		data = html_converter.handle(resp.text)
-		# compare to previous state if this is not the first iteration
-		if prev is not None and data != prev['data']:
+		# compare to previous state
+		diff = do_diff(cfg['main']['ignore'], prev['data'], data)
+		if diff is not None:
 			print("[%d] found differences!" % int(time.time()))
-			# generate diff
-			diff = do_diff(prev['data'], data)
-
 			# move current state.json to state.<timestamp>.json
 			os.rename(curr_state_file, os.path.join(output, 'state.%d.json' % prev['time']))
 
@@ -124,6 +155,7 @@ while True:
 			with open(curr_state_file, 'w+t') as fp:
 				json.dump(prev, fp)
 
+			"""
 			# create gist
 			gist = do_gist(diff, github_token)
 			
@@ -133,7 +165,9 @@ while True:
 				mastodon.toot('%s\n%s' % (status_text, gist['html_url']))
 			else:
 				print("[%d] could not create gist: %s" % (int(time.time()), gist))
+			"""
 
+			print(diff)
 		else:
 			print("[%d] same same ..." % now)
 		
@@ -145,5 +179,6 @@ while True:
 			}
 			with open(curr_state_file, 'w+t') as fp:
 				json.dump(prev, fp)
+
 
 	time.sleep(period)

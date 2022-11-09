@@ -2,7 +2,8 @@ main:
   page: 'https://twitter.com/en/tos'
   output: './twitter_tos/'
   period: 60
-
+  ignore: []
+  
 github:
   token: 'yout github token'
 
