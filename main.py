@@ -40,7 +40,7 @@ def do_diff(ignore, prev, curr):
 					break
 				
 			if not ignored:
-				print("MEANINGFUL '%s'" % line)
+				# print("MEANINGFUL '%s'" % line)
 				# this is a meaningful change
 				return diff
 
