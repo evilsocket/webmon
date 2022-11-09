@@ -40,6 +40,7 @@ def do_diff(ignore, prev, curr):
 					break
 				
 			if not ignored:
+				print("MEANINGFUL '%s'" % line)
 				# this is a meaningful change
 				return diff
 
@@ -142,7 +143,9 @@ while True:
 		# compare to previous state
 		diff = do_diff(cfg['main']['ignore'], prev['data'], data)
 		if diff is not None:
-			print("[%d] found differences!" % int(time.time()))
+			print("[%d] found differences:" % int(time.time()))
+			print(diff)
+
 			# move current state.json to state.<timestamp>.json
 			os.rename(curr_state_file, os.path.join(output, 'state.%d.json' % prev['time']))
 
@@ -155,7 +158,7 @@ while True:
 			with open(curr_state_file, 'w+t') as fp:
 				json.dump(prev, fp)
 
-			"""
+
 			# create gist
 			gist = do_gist(diff, github_token)
 			
@@ -165,9 +168,7 @@ while True:
 				mastodon.toot('%s\n%s' % (status_text, gist['html_url']))
 			else:
 				print("[%d] could not create gist: %s" % (int(time.time()), gist))
-			"""
 
-			print(diff)
 		else:
 			print("[%d] same same ..." % now)
 		
