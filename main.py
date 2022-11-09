@@ -63,6 +63,7 @@ mastodon = Mastodon(
 )
 
 html_converter = html2text.HTML2Text()
+html_converter.ignore_links = True
 
 print("web page monitor bot started for %s ...\n" % page_to_monitor)
 
