@@ -1,0 +1,12 @@
+main:
+  page: 'https://twitter.com/en/tos'
+  output: './twitter_tos/'
+  period: 60
+
+github:
+  token: 'yout github token'
+
+mastodon:
+  status: 'Detected Twitter ToS changes.'
+  api_base_url: 'https://automa.sh'
+  access_token: 'your mastodon bot access token'
