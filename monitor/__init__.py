@@ -3,6 +3,7 @@ import tempfile
 import requests
 import time
 import json
+import os
 
 def request_page(page):
 	# set request headers
@@ -45,16 +46,7 @@ def save_state(filename, data, diff = None):
 
 	return state
 
-def do_diff(ignore, prev, curr):
-	_, prev_file = tempfile.mkstemp()
-	with open(prev_file, 'w+t') as fp:
-		fp.write(prev)
-
-	_, curr_file = tempfile.mkstemp()
-	with open(curr_file, 'w+t') as fp:
-		fp.write(curr)
-
-	diff = subprocess.run(['diff', '-Naur', prev_file, curr_file], capture_output=True, text=True).stdout
+def is_meaningful_diff(ignore, diff):
 	for line in diff.split('\n'):
 		line = line.strip()
 		# skip first lines
@@ -77,6 +69,22 @@ def do_diff(ignore, prev, curr):
 			if not ignored:
 				# print("MEANINGFUL '%s'" % line)
 				# this is a meaningful change
-				return diff
+				return True
 
-	return None
+		return False
+
+def do_diff(ignore, prev, curr):
+	fd, prev_file = tempfile.mkstemp()
+	with os.fdopen(fd, 'w') as tmp:
+		tmp.write(prev)
+
+	fd, curr_file = tempfile.mkstemp()
+	with os.fdopen(fd, 'w') as tmp:
+		tmp.write(curr)
+
+	diff = subprocess.run(['diff', '-Naur', prev_file, curr_file], capture_output=True, text=True).stdout
+
+	os.remove(prev_file)
+	os.remove(curr_file)
+
+	return diff if is_meaningful_diff(ignore, diff) else None
